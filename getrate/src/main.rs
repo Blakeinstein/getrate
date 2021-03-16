@@ -1,3 +1,5 @@
+use proc;
+
 fn main() {
-    println!("getrate");
+    proc::main;
 }
