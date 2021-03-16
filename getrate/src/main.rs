@@ -1,5 +1,7 @@
 use proc;
+use std::error::Error;
 
-fn main() {
-    proc::main;
+fn main() -> Result<(), Box<dyn Error>>{
+    proc::main()?;
+    Ok(())
 }
