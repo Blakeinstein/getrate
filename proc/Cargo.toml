@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 rillrate = "0.22.1"
+sysinfo = "0.16.4"
