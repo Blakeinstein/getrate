@@ -1,6 +1,6 @@
 #[allow(unused_imports)]
 use rillrate::{RillRate, Table};
-use sysinfo::{System as Sys, SystemExt, Process, ProcessExt};
+use sysinfo::{System as Sys, SystemExt, Process, ProcessExt, ProcessStatus};
 use anyhow::Error;
 use std::error;
 use std::collections::BTreeSet;
@@ -31,6 +31,9 @@ impl ProcessWatcher {
         for (id, process) in sys.get_processes() {
             let row_id = (*id as u64).into();
             proc_set.insert(*id);
+            if process.name().is_empty() || !matches!(process.status(), ProcessStatus::Run) {
+                continue;
+            }
             os_table.add_row(row_id, Some(id.to_string()));
             os_table.set_cell(row_id, 0.into(), id, Some(SystemTime::now()));
             let timestamp = Some(SystemTime::now());
@@ -86,6 +89,12 @@ impl OnTick for ProcessWatcher {
         for (id, process) in self.sys.get_processes() {
             temp_set.insert(*id);
             let row_id = (*id as u64).into();
+            if process.name().is_empty() || !matches!(process.status(), ProcessStatus::Run) {
+                if self.proc_set.contains(id) {
+                    self.os_table.del_row((*id as u64).into());
+                }
+                continue;
+            }
             if !self.proc_set.contains(id) {
                 self.os_table.add_row(row_id, Some(id.to_string()));
             }
