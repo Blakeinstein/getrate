@@ -9,7 +9,6 @@ use meio::{Actor, Context, InterruptedBy, StartedBy, System, task::*};
 use async_trait::async_trait;
 
 struct ProcessWatcher {
-    _rillrate: RillRate,
     sys: Sys,
     os_table: Table,
     proc_set: BTreeSet<usize>,
@@ -17,33 +16,15 @@ struct ProcessWatcher {
 
 impl ProcessWatcher {
     pub fn new() -> Result<Self, Box<dyn error::Error>> {
-        let mut sys = Sys::new();
-        let _rillrate = RillRate::from_env("osmon")?;
+        let sys = Sys::new();
         let os_table = Table::create("processes")?;
-        let mut proc_set = BTreeSet::new();
-        sys.refresh_all();
-        
+        let proc_set = BTreeSet::new();     
         os_table.add_col(0.into(), Some("PID".into()));
         os_table.add_col(1.into(), Some("Process Name".into()));
         os_table.add_col(2.into(), Some("Cpu Usage".into()));
         os_table.add_col(3.into(), Some("Memory Usage (Mb)".into()));
         os_table.add_col(4.into(), Some("Disk Usage (Mb) R/W".into()));
-        for (id, process) in sys.get_processes() {
-            let row_id = (*id as u64).into();
-            proc_set.insert(*id);
-            if process.name().is_empty() || !matches!(process.status(), ProcessStatus::Run) {
-                continue;
-            }
-            os_table.add_row(row_id, Some(id.to_string()));
-            os_table.set_cell(row_id, 0.into(), id, Some(SystemTime::now()));
-            let timestamp = Some(SystemTime::now());
-            os_table.set_cell(row_id, 1.into(), process.name(), timestamp);
-            os_table.set_cell(row_id, 2.into(), format!("{:.4}%", process.cpu_usage()), timestamp);
-            os_table.set_cell(row_id, 3.into(), format!("{:.3}", process.memory() as f32 / 1000.), timestamp);
-            os_table.set_cell(row_id, 4.into(), format!("{:.3} / {:.3}", process.disk_usage().total_read_bytes as f32 /1000000., process.disk_usage().total_written_bytes/1000000), timestamp);
-        }
         Ok(Self {
-            _rillrate,
             sys,
             os_table,
             proc_set,
@@ -67,6 +48,17 @@ impl Actor for ProcessWatcher {
 #[async_trait]
 impl StartedBy<System> for ProcessWatcher {
     async fn handle(&mut self, ctx: &mut Context<Self>) -> Result<(), Error> {
+        self.sys.refresh_all();
+        for (id, process) in self.sys.get_processes() {
+            let row_id = (*id as u64).into();
+            self.proc_set.insert(*id);
+            if process.name().is_empty() || !matches!(process.status(), ProcessStatus::Run) {
+                continue;
+            }
+            self.os_table.add_row(row_id, Some(id.to_string()));
+            self.os_table.set_cell(row_id, 0.into(), id, Some(SystemTime::now()));
+            self.set_info(&process, *id as u64);
+        }
         let task = HeartBeat::new(Duration::from_millis(100), ctx.address().clone());
         ctx.spawn_task(task, ());
         Ok(())
@@ -115,6 +107,8 @@ impl OnTick for ProcessWatcher {
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn error::Error>> {
+    env_logger::try_init()?;
+    let _rillrate = RillRate::from_env("osmon")?;
     let proc = ProcessWatcher::new()?;
     let osmon = System::spawn(proc);
     
