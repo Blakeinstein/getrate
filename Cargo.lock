@@ -1138,9 +1138,9 @@ dependencies = [
 
 [[package]]
 name = "rill-client"
-version = "0.23.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71e462d4bf1c2afff424e3ccc6bde6b5d63601424a3824e62486ea5d1502d86f"
+checksum = "3cf0f0b9830502e3c2218009044de1c2d6ad33c837db547b8d64ed6dc6d185f4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1156,9 +1156,9 @@ dependencies = [
 
 [[package]]
 name = "rill-engine"
-version = "0.23.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "391aaf310413f9921a3410a458c7ca980867d5af83b7508c0cab33ac540760ae"
+checksum = "573fbd5a27432dec1b6eefdfbc80f3ce0a53cef6dc13b9b5ee586158d112a8b7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1177,9 +1177,9 @@ dependencies = [
 
 [[package]]
 name = "rill-export"
-version = "0.23.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea85af7f8c0592dfe765d35dca27206e8496b09232fe5d11920c4870b23592b5"
+checksum = "0bdbf9b1b9ea7759c2c3e334ba8dadb9bb243bebdd494d0b7050e21cac27ae3c"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1200,9 +1200,9 @@ dependencies = [
 
 [[package]]
 name = "rill-protocol"
-version = "0.23.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2545adeb6cf54f2787b8f86adb3740514aaab360c1476892b7e5876ddad462e6"
+checksum = "1df9b64cdc99025c086e8559ec3d8ea0377a67f1dc4ebbc81287d41eb9c6fed5"
 dependencies = [
  "anyhow",
  "derive_more",
@@ -1218,9 +1218,9 @@ dependencies = [
 
 [[package]]
 name = "rill-server"
-version = "0.23.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30ce6eb2d5c007ab007a17944eb2e4c90fc4d6412c7a66e6452bbf87f75672d6"
+checksum = "c66f1916e37a905e35117d8d8c1f942e4af80f90cce5609985283ae821788e10"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1247,9 +1247,9 @@ dependencies = [
 
 [[package]]
 name = "rillrate"
-version = "0.23.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6b1dbfa26bcf5cd8dfa8b42db938ffa5423a7e9dce086ce1cb30c7596b730dd"
+checksum = "bd150eed873279b5a1a9d261ee60dcd06d05eb4d031561aaa9c37c6a1b1c5e82"
 dependencies = [
  "anyhow",
  "async-trait",
