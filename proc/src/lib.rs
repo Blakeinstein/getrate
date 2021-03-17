@@ -1,31 +1,24 @@
+#[allow(unused_imports)]
 use rillrate::{RillRate, Table};
-use sysinfo::{System, SystemExt, Process, ProcessExt};
-use std::{error::Error, u64};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use sysinfo::{System as Sys, SystemExt, Process, ProcessExt};
+use anyhow::Error;
+use std::error;
 use std::collections::BTreeSet;
-use std::thread;
 use std::time::{ SystemTime, Duration };
+use meio::{Actor, Context, InterruptedBy, StartedBy, System, task::*};
+use async_trait::async_trait;
 
-fn set_info(os_table: &Table, process: &Process, id: u64) {
-    let row_id = id.into();
-    os_table.set_cell(row_id, 1.into(), process.name(), Some(SystemTime::now()));
-    os_table.set_cell(row_id, 2.into(), format!("{:.4}%", process.cpu_usage()), Some(SystemTime::now()));
-    os_table.set_cell(row_id, 3.into(), format!("{:.3}", process.memory() as f32 / 1000.), Some(SystemTime::now()));
-    os_table.set_cell(row_id, 4.into(), format!("{:.3} / {:.3}", process.disk_usage().total_read_bytes as f32 /1000000., process.disk_usage().total_written_bytes/1000000), Some(SystemTime::now()));
+struct ProcessWatcher {
+    _rillrate: RillRate,
+    sys: Sys,
+    os_table: Table,
+    proc_set: BTreeSet<usize>,
 }
 
-pub fn main() -> Result<(), Box<dyn Error>> {
-    let mut sys = System::new();
-    let _rillrate = RillRate::from_env("osmon")?;
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
-    ctrlc::set_handler(move || {
-        r.store(false, Ordering::SeqCst);
-    })?;
-    {
+impl ProcessWatcher {
+    pub fn new() -> Result<Self, Box<dyn error::Error>> {
+        let mut sys = Sys::new();
+        let _rillrate = RillRate::from_env("osmon")?;
         let os_table = Table::create("processes")?;
         let mut proc_set = BTreeSet::new();
         sys.refresh_all();
@@ -40,26 +33,82 @@ pub fn main() -> Result<(), Box<dyn Error>> {
             proc_set.insert(*id);
             os_table.add_row(row_id, Some(id.to_string()));
             os_table.set_cell(row_id, 0.into(), id, Some(SystemTime::now()));
-            set_info(&os_table, &process, *id as u64);
+            let timestamp = Some(SystemTime::now());
+            os_table.set_cell(row_id, 1.into(), process.name(), timestamp);
+            os_table.set_cell(row_id, 2.into(), format!("{:.4}%", process.cpu_usage()), timestamp);
+            os_table.set_cell(row_id, 3.into(), format!("{:.3}", process.memory() as f32 / 1000.), timestamp);
+            os_table.set_cell(row_id, 4.into(), format!("{:.3} / {:.3}", process.disk_usage().total_read_bytes as f32 /1000000., process.disk_usage().total_written_bytes/1000000), timestamp);
         }
-        println!("OsMon running on http://localhost:9090");
-        while running.load(Ordering::SeqCst) {
-            sys.refresh_processes();
-            let mut temp_set = BTreeSet::new();
-            for (id, process) in sys.get_processes() {
-                temp_set.insert(*id);
-                let row_id = (*id as u64).into();
-                if !proc_set.contains(id) {
-                    os_table.add_row(row_id, Some(id.to_string()));
-                }
-                set_info(&os_table, &process, *id as u64);
-            }
-            for id in proc_set.difference(&temp_set) {
-                os_table.del_row((*id as u64).into());
-            }
-            proc_set = temp_set;
-            thread::sleep(Duration::from_millis(100));
-        }
+        Ok(Self {
+            _rillrate,
+            sys,
+            os_table,
+            proc_set,
+        })
     }
+
+    fn set_info(&self, process: &Process, id: u64) {
+        let row_id = id.into();
+        let timestamp = Some(SystemTime::now());
+        self.os_table.set_cell(row_id, 1.into(), process.name(), timestamp);
+        self.os_table.set_cell(row_id, 2.into(), format!("{:.4}%", process.cpu_usage()), timestamp);
+        self.os_table.set_cell(row_id, 3.into(), format!("{:.3}", process.memory() as f32 / 1000.), timestamp);
+        self.os_table.set_cell(row_id, 4.into(), format!("{:.3} / {:.3}", process.disk_usage().total_read_bytes as f32 /1000000., process.disk_usage().total_written_bytes/1000000), timestamp);
+    }
+}
+
+impl Actor for ProcessWatcher {
+    type GroupBy = ();
+}
+
+#[async_trait]
+impl StartedBy<System> for ProcessWatcher {
+    async fn handle(&mut self, ctx: &mut Context<Self>) -> Result<(), Error> {
+        let task = HeartBeat::new(Duration::from_millis(100), ctx.address().clone());
+        ctx.spawn_task(task, ());
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl InterruptedBy<System> for ProcessWatcher {
+    async fn handle(&mut self, ctx: &mut Context<Self>) -> Result<(), Error> {
+        ctx.shutdown();
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl OnTick for ProcessWatcher {
+    async fn tick(&mut self, _: Tick, _: &mut meio::Context<Self>) -> Result<(), Error> {
+        self.sys.refresh_processes();
+        let mut temp_set = BTreeSet::new();
+        for (id, process) in self.sys.get_processes() {
+            temp_set.insert(*id);
+            let row_id = (*id as u64).into();
+            if !self.proc_set.contains(id) {
+                self.os_table.add_row(row_id, Some(id.to_string()));
+            }
+            self.set_info(&process, *id as u64);
+        }
+        for id in self.proc_set.difference(&temp_set) {
+            self.os_table.del_row((*id as u64).into());
+        }
+        self.proc_set = temp_set;
+        Ok(())
+    }
+
+    async fn done(&mut self, ctx: &mut meio::Context<Self>) -> Result<(), Error> {
+        ctx.shutdown();
+        Ok(())
+    }
+}
+
+#[tokio::main]
+pub async fn main() -> Result<(), Box<dyn error::Error>> {
+    let proc = ProcessWatcher::new()?;
+    let osmon = System::spawn(proc);
+    
+    System::wait_or_interrupt(osmon).await?;
     Ok(())
 }
