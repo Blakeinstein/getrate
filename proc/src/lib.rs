@@ -52,7 +52,7 @@ impl StartedBy<System> for ProcessWatcher {
         for (id, process) in self.sys.get_processes() {
             let row_id = (*id as u64).into();
             self.proc_set.insert(*id);
-            if process.name().is_empty() || !matches!(process.status(), ProcessStatus::Run) {
+            if process.name().is_empty() {
                 continue;
             }
             self.os_table.add_row(row_id, Some(id.to_string()));
@@ -81,7 +81,7 @@ impl OnTick for ProcessWatcher {
         for (id, process) in self.sys.get_processes() {
             temp_set.insert(*id);
             let row_id = (*id as u64).into();
-            if process.name().is_empty() || !matches!(process.status(), ProcessStatus::Run) {
+            if process.name().is_empty() {
                 if self.proc_set.contains(id) {
                     self.os_table.del_row((*id as u64).into());
                 }
