@@ -1,8 +1,8 @@
 #[allow(unused_imports)]
 use rillrate::{RillRate, Table};
-use sysinfo::{System as Sys, SystemExt, Process, ProcessExt, ProcessStatus};
+use sysinfo::{System as Sys, SystemExt, Process, ProcessExt};
 use anyhow::Error;
-use std::error;
+use std::{error, usize};
 use std::collections::BTreeSet;
 use std::time::{ SystemTime, Duration };
 use meio::{Actor, Context, InterruptedBy, StartedBy, System, task::*};
@@ -51,7 +51,7 @@ impl StartedBy<System> for ProcessWatcher {
         self.sys.refresh_all();
         for (id, process) in self.sys.get_processes() {
             let row_id = (*id as u64).into();
-            self.proc_set.insert(*id);
+            self.proc_set.insert(*id as usize);
             if process.name().is_empty() {
                 continue;
             }
@@ -79,15 +79,15 @@ impl OnTick for ProcessWatcher {
         self.sys.refresh_processes();
         let mut temp_set = BTreeSet::new();
         for (id, process) in self.sys.get_processes() {
-            temp_set.insert(*id);
+            temp_set.insert(*id as usize);
             let row_id = (*id as u64).into();
             if process.name().is_empty() {
-                if self.proc_set.contains(id) {
+                if self.proc_set.contains(&(*id as usize)) {
                     self.os_table.del_row((*id as u64).into());
                 }
                 continue;
             }
-            if !self.proc_set.contains(id) {
+            if !self.proc_set.contains(&(*id as usize)) {
                 self.os_table.add_row(row_id, Some(id.to_string()));
             }
             self.set_info(&process, *id as u64);
