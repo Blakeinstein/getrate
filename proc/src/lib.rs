@@ -21,9 +21,10 @@ impl ProcessWatcher {
         let proc_set = BTreeSet::new();     
         os_table.add_col(0.into(), Some("PID".into()));
         os_table.add_col(1.into(), Some("Process Name".into()));
-        os_table.add_col(2.into(), Some("Cpu Usage".into()));
-        os_table.add_col(3.into(), Some("Memory Usage (Mb)".into()));
-        os_table.add_col(4.into(), Some("Disk Usage (Mb) R/W".into()));
+        os_table.add_col(2.into(), Some("Status".into()));
+        os_table.add_col(3.into(), Some("Cpu Usage".into()));
+        os_table.add_col(4.into(), Some("Memory Usage (Mb)".into()));
+        os_table.add_col(5.into(), Some("Disk Usage (Mb) R/W".into()));
         Ok(Self {
             sys,
             os_table,
@@ -35,9 +36,10 @@ impl ProcessWatcher {
         let row_id = id.into();
         let timestamp = Some(SystemTime::now());
         self.os_table.set_cell(row_id, 1.into(), process.name(), timestamp);
-        self.os_table.set_cell(row_id, 2.into(), format!("{:.4}%", process.cpu_usage()), timestamp);
-        self.os_table.set_cell(row_id, 3.into(), format!("{:.3}", process.memory() as f32 / 1000.), timestamp);
-        self.os_table.set_cell(row_id, 4.into(), format!("{:.3} / {:.3}", process.disk_usage().total_read_bytes as f32 /1000000., process.disk_usage().total_written_bytes/1000000), timestamp);
+        self.os_table.set_cell(row_id, 2.into(), process.status().to_string(), timestamp);
+        self.os_table.set_cell(row_id, 3.into(), format!("{:.4}%", process.cpu_usage()), timestamp);
+        self.os_table.set_cell(row_id, 4.into(), format!("{:.3}", process.memory() as f32 / 1000.), timestamp);
+        self.os_table.set_cell(row_id, 5.into(), format!("{:.3} / {:.3}", process.disk_usage().total_read_bytes as f32 /1000000., process.disk_usage().total_written_bytes/1000000), timestamp);
     }
 }
 
