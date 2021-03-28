@@ -5,4 +5,5 @@ authors = ["Denis Kolodin <deniskolodin@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-proc = { path = "../proc"}
+rillrate = "0.23.1"
+proc = { path = "../proc" }

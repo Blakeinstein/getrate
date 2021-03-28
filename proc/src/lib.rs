@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use rillrate::{RillRate, Table};
+use rillrate::Table;
 use sysinfo::{System as Sys, SystemExt, Process, ProcessExt};
 use anyhow::Error;
 use std::{error, usize};
@@ -108,7 +108,6 @@ impl OnTick for ProcessWatcher {
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn error::Error>> {
     env_logger::try_init()?;
-    let _rillrate = RillRate::from_env("osmon")?;
     let proc = ProcessWatcher::new()?;
     let osmon = System::spawn(proc);
     
