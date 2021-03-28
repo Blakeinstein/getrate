@@ -109,7 +109,6 @@ impl OnTick for ProcessWatcher {
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn error::Error>> {
-    env_logger::try_init()?;
     let proc = ProcessWatcher::new()?;
     let osmon = System::spawn(proc);
     

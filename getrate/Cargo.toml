@@ -6,4 +6,6 @@ edition = "2018"
 
 [dependencies]
 rillrate = "0.23.1"
+env_logger = "0.8.3"
 proc = { path = "../proc" }
+docker = { path = "../docker" }
