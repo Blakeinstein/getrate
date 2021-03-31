@@ -6,7 +6,7 @@ use rillrate::RillRate;
 fn main() -> Result<(), Box<dyn Error>>{
     env_logger::try_init()?;
     let _rillrate = RillRate::from_env("osmon")?;
-    proc::main()?;
+    // proc::main()?;
     docker::main()?;
     Ok(())
 }
